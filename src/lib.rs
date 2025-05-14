@@ -8,7 +8,6 @@ use gemini_client_rs::{
 use prompt::SYSTEM_PROMPT;
 use rustyline::{error::ReadlineError, DefaultEditor};
 use serde_json::json;
-use types::{GeminiResponse, NexShConfig};
 use std::{
     error::Error,
     fs,
@@ -16,8 +15,9 @@ use std::{
     path::PathBuf,
     process::Command,
 };
-pub mod types;
+use types::{GeminiResponse, NexShConfig};
 pub mod prompt;
+pub mod types;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -125,7 +125,10 @@ impl Shell {
         });
 
         let request: GenerateContentRequest = serde_json::from_value(req_json)?;
-        let response = self.client.generate_content("gemini-1.5-flash", &request).await?;
+        let response = self
+            .client
+            .generate_content("gemini-1.5-flash", &request)
+            .await?;
 
         if let Some(candidates) = response.candidates {
             for candidate in &candidates {
@@ -141,14 +144,17 @@ impl Shell {
                         match serde_json::from_str::<GeminiResponse>(clean_json) {
                             Ok(response) => {
                                 println!("{} {}", "🤖 →".green(), response.message.yellow());
-                                println!("{} {}", "Category : ".green(), response.category.yellow());
+                                println!(
+                                    "{} {}",
+                                    "Category : ".green(),
+                                    response.category.yellow()
+                                );
                                 println!("{} {}", "→".blue(), response.command);
 
                                 if !response.dangerous || self.confirm_execution()? {
                                     println!("{}", "Executing...".green());
                                     self.execute_command(&response.command)?;
                                     println!("{}", "Done!".green());
-
                                 } else {
                                     println!("Command execution cancelled.");
                                 }
@@ -156,10 +162,12 @@ impl Shell {
                             Err(e) => {
                                 eprintln!("Failed to parse response: {}", e);
                                 println!("Raw response: {}", clean_json);
-                                
+
                                 if cfg!(debug_assertions) {
-                                    println!("Debug: Response contains markdown block: {}", 
-                                        json_str.contains("```"));
+                                    println!(
+                                        "Debug: Response contains markdown block: {}",
+                                        json_str.contains("```")
+                                    );
                                     println!("Debug: Cleaned JSON: {}", clean_json);
                                 }
                             }
@@ -194,11 +202,59 @@ impl Shell {
         io::stderr().write_all(&output.stderr)?;
 
         if !output.status.success() {
-            return Err(format!(
+            println!("{} {}", "⚠️ Command failed:".red(), command.yellow());
+            println!(
+                "{} {}",
+                "Exit code:".red(),
+                output.status.code().unwrap_or(-1).to_string().yellow()
+            );
+            let error_message = format!(
                 "Command failed with exit code: {}",
                 output.status.code().unwrap_or(-1)
-            )
-            .into());
+            );
+            println!("{}", "Requesting AI analysis...".blue());
+
+            let command_clone = command.to_string();
+            let error_message_clone = error_message.clone();
+            let client_clone = GeminiClient::new(self.config.api_key.clone());
+
+            tokio::spawn(async move {
+                let prompt = format!(
+                    "The following command failed:\n{}\nwith the following error message:\n{}\nExplain the issue and suggest solutions, WITHOUT markdown formatting or code blocks.",
+                    command_clone, error_message_clone
+                );
+
+                let req_json = json!({"contents": [{
+                        "parts": [{
+                            "text": prompt
+                        }],
+                        "role": "user"
+                    }],
+                    "tools": []
+                });
+
+                let request: GenerateContentRequest = serde_json::from_value(req_json).unwrap();
+                if let Ok(response) = client_clone
+                    .generate_content("gemini-1.5-flash", &request)
+                    .await
+                {
+                    if let Some(candidates) = response.candidates {
+                        for candidate in &candidates {
+                            for part in &candidate.content.parts {
+                                if let PartResponse::Text(explanation) = part {
+                                    println!(
+                                        "{} {}",
+                                        "🤖 AI Explanation:".green(),
+                                        explanation.yellow()
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            return Err(error_message.into());
         }
         Ok(String::from_utf8(output.stdout)?)
     }
