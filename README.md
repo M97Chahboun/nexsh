@@ -16,7 +16,7 @@ Next-generation AI-powered shell using Google Gemini
 [Contributing](#contributing) •
 [Documentation](https://m97chahboun.github.io/nexsh)
 
-<img src="docs/assets/demo.gif" alt="NexSh Demo" width="600"/>
+<img src="demo.gif" alt="NexSh Demo" width="600"/>
 
 </div>
 
@@ -27,7 +27,6 @@ Next-generation AI-powered shell using Google Gemini
 - 🎨 **Interactive experience** - Colorful output with intuitive formatting
 - 📝 **Enhanced history** - Search and recall past commands easily
 - 🛡️ **Safety first** - Warns before executing potentially dangerous commands
-- ⚙️ **Fully customizable** - Tweak behavior to match your workflow
 - 🚀 **Multiple modes** - Interactive shell or single-command execution
 - 💻 **Cross-platform** - Works on Linux, macOS, and Windows
 
