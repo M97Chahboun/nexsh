@@ -135,15 +135,7 @@ Configuration files are stored in platform-specific locations:
 {
   "api_key": "your_api_key_here",
   "history_size": 1000,
-  "dangerous_commands": [
-    "rm",
-    "dd",
-    "sudo"
-  ],
   "default_os": "linux",
-  "theme": "dark",
-  "auto_confirm": false,
-  "model": "gemini-pro"
 }
 ```
 
