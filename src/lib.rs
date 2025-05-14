@@ -61,8 +61,8 @@ impl Shell {
         let config_dir = proj_dirs.config_dir().to_path_buf();
         fs::create_dir_all(&config_dir)?;
 
-        let config_file = config_dir.join("config.json");
-        let history_file = config_dir.join("history.txt");
+        let config_file = config_dir.join("nexsh_config.json");
+        let history_file = config_dir.join("nexsh_history.txt");
 
         let config = if config_file.exists() {
             let content = fs::read_to_string(&config_file)?;
@@ -88,7 +88,7 @@ impl Shell {
     }
 
     fn save_config(&self) -> Result<(), Box<dyn Error>> {
-        let config_file = self.config_dir.join("config.json");
+        let config_file = self.config_dir.join("nexsh_config.json");
         let content = serde_json::to_string_pretty(&self.config)?;
         fs::write(config_file, content)?;
         Ok(())
