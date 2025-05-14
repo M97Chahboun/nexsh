@@ -1,41 +1,86 @@
-name: Deploy Rust Binary
+name: Build and Publish Desktop Release
 
 on:
   push:
     branches:
       - master
 
+env:
+  CARGO_TERM_COLOR: always
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
+  release:
+    name: Release - ${{ matrix.platform.os }}
+    runs-on: ${{ matrix.platform.os }}
+    
     strategy:
+      fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
+        platform:
+          - os: ubuntu-latest
+            os-name: linux
+            asset-name: nexsh-linux
+            asset-extension: .tar.gz
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            os-name: macos
+            asset-name: nexsh-macos
+            asset-extension: .tar.gz
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            os-name: windows
+            asset-name: nexsh-windows
+            asset-extension: .zip
+            target: x86_64-pc-windows-msvc
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
-          override-path: true
+          targets: ${{ matrix.platform.target }}
 
-      - name: Build
-        run: cargo build --release
-
-      - name: Create artifact
+      - name: Install Linux dependencies
+        if: matrix.platform.os == 'ubuntu-latest'
         run: |
-          mkdir -p output
-          cp target/release/your_binary_name output/
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
+      - name: Build Release Binary
+        run: |
+          cargo build --release --target ${{ matrix.platform.target }}
+
+      - name: Prepare Release Asset (Linux/macOS)
+        if: matrix.platform.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.platform.target }}/release
+          tar czvf ../../../${{ matrix.platform.asset-name }}${{ matrix.platform.asset-extension }} nexsh
+          cd -
+
+      - name: Prepare Release Asset (Windows)
+        if: matrix.platform.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.platform.target }}/release
+          7z a ../../../${{ matrix.platform.asset-name }}${{ matrix.platform.asset-extension }} nexsh.exe
+          cd -
+
+      - name: Generate SHA256 Checksum
+        run: |
+          if [ "${{ matrix.platform.os }}" = "windows-latest" ]; then
+            certutil -hashfile ${{ matrix.platform.asset-name }}${{ matrix.platform.asset-extension }} SHA256 | grep -v "SHA256" | grep -v "CertUtil" > ${{ matrix.platform.asset-name }}.sha256
+          else
+            shasum -a 256 ${{ matrix.platform.asset-name }}${{ matrix.platform.asset-extension }} | cut -d ' ' -f 1 > ${{ matrix.platform.asset-name }}.sha256
+          fi
+        shell: bash
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
         with:
-          name: rust-binary-${{ matrix.os }}
-          path: output/
+          files: |
+            ${{ matrix.platform.asset-name }}${{ matrix.platform.asset-extension }}
+            ${{ matrix.platform.asset-name }}.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
