@@ -38,6 +38,40 @@ Next-generation AI-powered shell using Google Gemini
 
 ## 🚀 Installation
 
+### From GitHub Releases
+
+You can download pre-built binaries for your platform from our [GitHub Releases](https://github.com/M97Chahboun/nexsh/releases) page.
+
+1. Visit the [Releases](https://github.com/M97Chahboun/nexsh/releases) page
+2. Download the appropriate file for your platform:
+   - Windows: `nexsh-windows.zip`
+   - macOS: `nexsh-macos.tar.gz`
+   - Linux: `nexsh-linux.tar.gz`
+3. Verify the download using SHA256 checksum:
+   ```bash
+   # Download both the binary and its checksum
+   curl -LO https://github.com/M97Chahboun/nexsh/releases/latest/download/nexsh-linux.tar.gz
+   curl -LO https://github.com/M97Chahboun/nexsh/releases/latest/download/nexsh-linux.sha256
+   
+   # Verify the checksum (Linux/macOS)
+   echo "$(cat nexsh-linux.sha256)  nexsh-linux.tar.gz" | shasum -a 256 --check
+   ```
+4. Extract the archive:
+   ```bash
+   # For Linux/macOS
+   tar xzf nexsh-linux.tar.gz
+   
+   # For Windows
+   unzip nexsh-windows.zip
+   ```
+5. Move the binary to a directory in your PATH:
+   ```bash
+   # Linux/macOS
+   sudo mv nexsh /usr/local/bin/
+   
+   # Windows: Move nexsh.exe to a directory in your PATH
+   ```
+   
 ### Using Cargo (Recommended)
 
 ```bash
