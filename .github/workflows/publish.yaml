@@ -1,9 +1,8 @@
 name: Build and Publish Desktop Release
 
 on:
-  push:
-    branches:
-      - master
+  release:
+    types: [created]
 
 env:
   CARGO_TERM_COLOR: always
