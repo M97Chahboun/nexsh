@@ -5,7 +5,17 @@ edition = "2021"
 authors = ["M97Chahboun"]
 description = "Next-generation AI-powered shell using Google Gemini"
 license = "MIT"
-repository = "https://github.com/bixat/nexsh"
+repository = "https://github.com/M97Chahboun/nexsh"
+documentation = "https://github.com/M97Chahboun/nexsh#readme"
+homepage = "https://github.com/M97Chahboun/nexsh"
+keywords = ["cli", "shell", "ai", "gemini", "terminal"]
+categories = ["command-line-utilities", "development-tools"]
+readme = "README.md"
+
+# Make sure binary name is correct
+[[bin]]
+name = "nexsh"
+path = "src/main.rs"
 
 [dependencies]
 gemini_client_rs = "0.1"

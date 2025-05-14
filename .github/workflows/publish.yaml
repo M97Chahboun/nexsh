@@ -1,0 +1,42 @@
+name: Publish to crates.io
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.*'
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - uses: katyo/publish-crates@v2
+        with:
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            ## NexSh ${{ github.ref_name }}
+            
+            ### Installation
+            ```bash
+            cargo install nexsh
+            ```
+            
+            See [README.md](README.md) for more details.
