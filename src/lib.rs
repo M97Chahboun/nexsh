@@ -40,19 +40,6 @@ impl Default for NexShConfig {
         Self {
             api_key: String::new(),
             history_size: 1000,
-            dangerous_commands: vec![
-                "rm".to_string(),
-                "del".to_string(),
-                "format".to_string(),
-                "mkfs".to_string(),
-                "dd".to_string(),
-                "sudo".to_string(),
-                "su".to_string(),
-                ">".to_string(),
-                "shutdown".to_string(),
-                "reboot".to_string(),
-                "halt".to_string(),
-            ],
             default_os: std::env::consts::OS.to_string(),
         }
     }

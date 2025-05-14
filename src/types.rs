@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 pub struct NexShConfig {
     pub api_key: String,
     pub history_size: usize,
-    pub dangerous_commands: Vec<String>,
     pub default_os: String,
 }
 
