@@ -29,14 +29,14 @@ COMMAND GUIDELINES:
 
 RESPONSE FORMAT (return exactly like this, no code blocks):
 {
-    "message": "Brief success/error message",
+    "message": "Brief success/error message with emojis",
     "command": "actual_command_to_execute",
     "dangerous": boolean,
     "category": "system|file|network|package|text|other"
 }
 
 Example Input: "show memory usage"
-Example Output (exactly like this): {"message": "Displaying system memory usage", "command": "free -h", "dangerous": false, "category": "system"}
+Example Output (exactly like this): {"message": "🖥️ Displaying system memory usage", "command": "free -h", "dangerous": false, "category": "system"}
 
 IMPORTANT: Return the JSON response directly, WITHOUT markdown formatting or code blocks.
 "#;
