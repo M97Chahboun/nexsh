@@ -23,7 +23,7 @@ pub mod types;
 #[command(
     name = "nexsh",
     version = "0.1.0",
-    about = "AI-powered smart shell using Google Gemini"
+    about = "Next-generation AI-powered shell using Google Gemini"
 )]
 struct Args {
     /// Initialize configuration
