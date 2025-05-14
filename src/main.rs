@@ -33,6 +33,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if let Some(cmd) = args.execute {
+        if cmd == "--help" || cmd == "-h" {
+            shell.print_help()?;
+            return Ok(());
+        }
         return shell.process_command(&cmd).await;
     }
 

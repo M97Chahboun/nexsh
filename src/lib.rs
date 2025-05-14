@@ -259,6 +259,14 @@ impl Shell {
         Ok(String::from_utf8(output.stdout)?)
     }
 
+    pub fn print_help(&self) -> Result<(), Box<dyn Error>> {
+        println!("🤖 NexSh Help:");
+        println!("  - Type 'exit' or 'quit' to exit the shell.");
+        println!("  - Type any command to execute it.");
+        println!("  - Use 'init' to set up your API key.");
+        Ok(())
+    }
+
     pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
         println!("🤖 Welcome to NexSh! Type 'exit' to quit.");
 
