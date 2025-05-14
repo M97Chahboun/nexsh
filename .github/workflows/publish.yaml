@@ -1,181 +1,41 @@
-name: Release
+name: Deploy Rust Binary
 
 on:
   push:
-    tags:
-      - 'v[0-9]+.*'
-  workflow_dispatch:
-
-env:
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
-  DATE: "2025-05-14 14:45:20"
-  AUTHOR: "M97Chahboun"
+    branches:
+      - main
 
 jobs:
-  build-and-release:
-    name: Build and Release (${{ matrix.target }})
+  build:
     runs-on: ${{ matrix.os }}
-    
     strategy:
-      fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact_name: nexsh
-            asset_name: nexsh-linux-amd64
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact_name: nexsh
-            asset_name: nexsh-linux-arm64
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: nexsh
-            asset_name: nexsh-darwin-amd64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: nexsh
-            asset_name: nexsh-darwin-arm64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: nexsh.exe
-            asset_name: nexsh-windows-amd64
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
-          profile: minimal
-
-      - name: Install cross-compilation tools
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-      - name: Build Binary
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target ${{ matrix.target }}
-          use-cross: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
-
-      - name: Prepare Release Assets
-        shell: bash
-        run: |
-          cd target/${{ matrix.target }}/release
-          
-          # Create release directory
-          mkdir release
-          cp ${{ matrix.artifact_name }} release/
-          cp ../../../README.md release/
-          cp ../../../LICENSE release/
-          
-          # Create archive based on OS
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            7z a ../../${{ matrix.asset_name }}.zip ./release/*
-          else
-            tar -czf ../../${{ matrix.asset_name }}.tar.gz ./release/*
-          fi
-          
-          # Calculate checksums
-          cd ../..
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            sha256sum ${{ matrix.asset_name }}.zip > ${{ matrix.asset_name }}.sha256
-          else
-            sha256sum ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.sha256
-          fi
-
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
-            target/${{ matrix.asset_name }}.*
-          body: |
-            ## NexSh ${{ github.ref_name }}
-            
-            **Release Date:** ${{ env.DATE }}
-            **Author:** ${{ env.AUTHOR }}
-            
-            ### Installation
-            
-            #### macOS
-            ```bash
-            # Using Homebrew
-            brew tap M97Chahboun/nexsh
-            brew install nexsh
-            
-            # Or download directly:
-            # For Intel Macs:
-            curl -LO https://github.com/M97Chahboun/nexsh/releases/download/${{ github.ref_name }}/nexsh-darwin-amd64.tar.gz
-            # For M1/M2 Macs:
-            curl -LO https://github.com/M97Chahboun/nexsh/releases/download/${{ github.ref_name }}/nexsh-darwin-arm64.tar.gz
-            ```
-            
-            #### Linux
-            ```bash
-            # For x86_64:
-            curl -LO https://github.com/M97Chahboun/nexsh/releases/download/${{ github.ref_name }}/nexsh-linux-amd64.tar.gz
-            # For ARM64:
-            curl -LO https://github.com/M97Chahboun/nexsh/releases/download/${{ github.ref_name }}/nexsh-linux-arm64.tar.gz
-            ```
-            
-            #### Windows
-            ```powershell
-            # Download the ZIP file:
-            Invoke-WebRequest -Uri "https://github.com/M97Chahboun/nexsh/releases/download/${{ github.ref_name }}/nexsh-windows-amd64.zip" -OutFile "nexsh-windows-amd64.zip"
-            ```
-            
-            ### Checksums
-            SHA256 checksums are provided in the `.sha256` files.
-            
-            ### Cargo Installation
-            ```bash
-            cargo install nexsh
-            ```
-            
-            For more information, see the [README.md](https://github.com/M97Chahboun/nexsh#readme).
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-crate:
-    name: Publish to crates.io
-    needs: build-and-release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install Rust
+      - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
+          override-path: true
 
-      - name: Publish to crates.io
-        uses: katyo/publish-crates@v2
-        with:
-          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Build
+        run: cargo build --release
 
-  update-homebrew:
-    name: Update Homebrew Formula
-    needs: build-and-release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Homebrew Update
+      - name: Create artifact
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          curl -X POST \
-            -H "Authorization: token ${{ secrets.BREW_TAP_TOKEN }}" \
-            -H "Accept: application/vnd.github.everest-preview+json" \
-            -H "Content-Type: application/json" \
-            https://api.github.com/repos/M97Chahboun/homebrew-nexsh/dispatches \
-            --data "{\"event_type\": \"release\", \"client_payload\": {\"version\": \"$VERSION\"}}"
+          mkdir -p output
+          cp target/release/your_binary_name output/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: rust-binary-${{ matrix.os }}
+          path: output/
