@@ -20,6 +20,9 @@ Next-generation AI-powered shell using Google Gemini
 
 </div>
 
+> ⚠️ **Note**: This project is under active development. Features and Commands may change.
+
+
 ## 🌟 Features
 
 - 🧠 **AI-powered command interpretation** - Understands natural language commands
