@@ -1,7 +1,7 @@
 
 
 <div align="center">
-<img href="https://ummaty.org/gaza" src="https://raw.githubusercontent.com/Safouene1/support-palestine-banner/master/banner-support.svg" alt="support-palestine-banner"></img>
+<a href="https://ummaty.org/gaza"><img href="https://ummaty.org/gaza" src="https://raw.githubusercontent.com/Safouene1/support-palestine-banner/master/banner-support.svg" alt="support-palestine-banner"></img></a>
 
 # NexSh 🤖
 
