@@ -15,7 +15,7 @@ use std::{
     path::PathBuf,
     process::Command,
 };
-use types::{GeminiResponse, NexShConfig};
+use types::{GeminiResponse, Message, NexShConfig};
 pub mod prompt;
 pub mod types;
 
@@ -39,8 +39,9 @@ impl Default for NexShConfig {
     fn default() -> Self {
         Self {
             api_key: String::new(),
-            history_size: 1000,
             default_os: std::env::consts::OS.to_string(),
+            history_size: 1000,
+            max_context_messages: 100,
         }
     }
 }
@@ -49,8 +50,10 @@ pub struct Shell {
     config: NexShConfig,
     config_dir: PathBuf,
     history_file: PathBuf,
+    context_file: PathBuf,
     client: GeminiClient,
     editor: DefaultEditor,
+    messages: Vec<Message>,
 }
 
 impl Shell {
@@ -63,12 +66,20 @@ impl Shell {
 
         let config_file = config_dir.join("nexsh_config.json");
         let history_file = config_dir.join("nexsh_history.txt");
+        let context_file = config_dir.join("nexsh_context.json");
 
         let config = if config_file.exists() {
             let content = fs::read_to_string(&config_file)?;
             serde_json::from_str(&content)?
         } else {
             NexShConfig::default()
+        };
+
+        let messages = if context_file.exists() {
+            let content = fs::read_to_string(&context_file)?;
+            serde_json::from_str(&content)?
+        } else {
+            Vec::new()
         };
 
         let mut editor = DefaultEditor::new()?;
@@ -82,8 +93,10 @@ impl Shell {
             config,
             config_dir,
             history_file,
+            context_file,
             client,
             editor,
+            messages,
         })
     }
 
@@ -94,16 +107,52 @@ impl Shell {
         Ok(())
     }
 
+    fn save_context(&self) -> Result<(), Box<dyn Error>> {
+        let content = serde_json::to_string_pretty(&self.messages)?;
+        fs::write(&self.context_file, content)?;
+        Ok(())
+    }
+
+    fn add_message(&mut self, role: &str, content: &str) {
+        let message = Message {
+            role: role.to_string(),
+            content: content.to_string(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+        };
+
+        self.messages.push(message);
+
+        // Trim old messages if we exceed max_context_messages
+        if self.messages.len() > self.config.max_context_messages {
+            self.messages = self.messages.split_off(self.messages.len() - self.config.max_context_messages);
+        }
+
+        let _ = self.save_context();
+    }
+
     pub fn initialize(&mut self) -> Result<(), Box<dyn Error>> {
         println!("🤖 Welcome to NexSh Setup!");
 
-        print!("Enter your Gemini API key: ");
-        io::stdout().flush()?;
         self.config.api_key = self
             .editor
             .readline("Enter your Gemini API key: ")?
             .trim()
             .to_string();
+
+        if let Ok(input) = self.editor.readline("Enter history size (default 1000): ") {
+            if let Ok(size) = input.trim().parse() {
+                self.config.history_size = size;
+            }
+        }
+
+        if let Ok(input) = self.editor.readline("Enter max context messages (default 100): ") {
+            if let Ok(size) = input.trim().parse() {
+                self.config.max_context_messages = size;
+            }
+        }
 
         self.save_config()?;
         println!("✅ Configuration saved successfully!");
@@ -112,15 +161,30 @@ impl Shell {
     }
 
     pub async fn process_command(&mut self, input: &str) -> Result<(), Box<dyn Error>> {
-        let req_json = json!({
-            "contents": [{
-                "parts": [{
-                    "text": SYSTEM_PROMPT
-                        .replace("{OS}", &self.config.default_os)
-                        .replace("{REQUEST}", input)
-                }],
-                "role": "user"
+        // Add user message to context
+        self.add_message("user", input);
+
+        // Build context array including system message and conversation history
+        let mut contents = vec![json!({
+            "parts": [{
+                "text": SYSTEM_PROMPT
+                    .replace("{OS}", &self.config.default_os)
             }],
+            "role": "user"
+        })];
+
+        // Add context messages
+        for msg in &self.messages {
+            contents.push(json!({
+                "parts": [{
+                    "text": msg.content
+                }],
+                "role": msg.role
+            }));
+        }
+
+        let req_json = json!({
+            "contents": contents,
             "tools": []
         });
 
@@ -144,17 +208,28 @@ impl Shell {
                         match serde_json::from_str::<GeminiResponse>(clean_json) {
                             Ok(response) => {
                                 println!("{} {}", "🤖 →".green(), response.message.yellow());
+                                if response.command.is_empty() {
+                                    // Add model response to context
+                                    self.add_message("model", &format!("{}", response.message));
+                                    return Ok(());
+                                }
                                 println!(
                                     "{} {}",
                                     "Category : ".green(),
                                     response.category.yellow()
                                 );
                                 println!("{} {}", "→".blue(), response.command);
+                                self.add_message("model", &format!("Command:{}, message:{}", response.command, response.message));
 
                                 if !response.dangerous || self.confirm_execution()? {
                                     println!("{}", "Executing...".green());
-                                    self.execute_command(&response.command)?;
+                                    let output = self.execute_command(&response.command)?;
                                     println!("{}", "Done!".green());
+                                    
+                                    // Add command output to context
+                                    if !output.is_empty() {
+                                        self.add_message("model", &format!("Command output:\n{}", output));
+                                    }
                                 } else {
                                     println!("Command execution cancelled.");
                                 }
@@ -259,11 +334,19 @@ impl Shell {
         Ok(String::from_utf8(output.stdout)?)
     }
 
+    fn clear_context(&mut self) -> Result<(), Box<dyn Error>> {
+        self.messages.clear();
+        self.save_context()?;
+        println!("{}", "🧹 Conversation context cleared".green());
+        Ok(())
+    }
+
     pub fn print_help(&self) -> Result<(), Box<dyn Error>> {
         println!("🤖 NexSh Help:");
         println!("  - Type 'exit' or 'quit' to exit the shell.");
         println!("  - Type any command to execute it.");
         println!("  - Use 'init' to set up your API key.");
+        println!("  - Use 'clear' to clear conversation context.");
         Ok(())
     }
 
@@ -283,6 +366,9 @@ impl Shell {
 
                     match input {
                         "exit" | "quit" => break,
+                        "clear" => self.clear_context()?,
+                        "init" => self.initialize()?,
+                        "help" => self.print_help()?,
                         _ => {
                             if let Err(e) = self.process_command(input).await {
                                 eprintln!("{} {}", "error:".red(), e);

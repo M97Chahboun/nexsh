@@ -31,11 +31,11 @@ pub fn print_header() {
         now.format("(%Y-%m-%d %H:%M UTC)").to_string().bright_black()
     );
     println!("{}", "━".repeat(56).bright_blue());
-    println!(
-        "{} Type {} for help or {} to exit",
-        "→".bright_yellow(),
-        "'help'".cyan(),
-        "'exit'".cyan()
-    );
-    println!();
+    println!("🤖 NexSh Help:");
+    println!("  - Type 'exit' or 'quit' to exit the shell.");
+    println!("  - Type any command to execute it.");
+    println!("  - Use 'init' to set up your API key.");
+    println!("  - Use 'clear' to clear conversation context.");
+
+    println!("\n{} Type {} for help or {} to exit", "→".bright_yellow(), "'help'".cyan(), "'exit'".cyan());
 }

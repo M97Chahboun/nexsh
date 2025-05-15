@@ -30,7 +30,7 @@ COMMAND GUIDELINES:
 RESPONSE FORMAT (return exactly like this, no code blocks):
 {
     "message": "Brief success/error message with emojis",
-    "command": "actual_command_to_execute",
+    "command": "actual_command_to_execute - if needed - if is null set empty string",
     "dangerous": boolean,
     "category": "system|file|network|package|text|other"
 }
