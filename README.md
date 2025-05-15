@@ -1,7 +1,7 @@
-[![ReadMeSupportPalestine](https://raw.githubusercontent.com/Safouene1/support-palestine-banner/master/banner-support.svg)](https://ummaty.org/donate/)
 
 
 <div align="center">
+<img href="https://ummaty.org/gaza" src="https://raw.githubusercontent.com/Safouene1/support-palestine-banner/master/banner-support.svg" alt="support-palestine-banner"></img>
 
 # NexSh 🤖
 
