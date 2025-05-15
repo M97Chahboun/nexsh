@@ -5,6 +5,7 @@ use std::{
 };
 pub mod types;
 pub mod prompt;
+mod header;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -24,6 +25,8 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    header::print_header();
+
     let args = Args::parse();
     let mut shell = Shell::new()?;
 
