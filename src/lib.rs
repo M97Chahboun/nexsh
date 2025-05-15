@@ -169,6 +169,11 @@ impl Shell {
     }
 
     pub async fn process_command(&mut self, input: &str) -> Result<(), Box<dyn Error>> {
+
+        if self.config.api_key.is_empty() {
+            self.initialize()?;
+        }
+
         let os = std::env::consts::OS.to_string();
         let prompt = SYSTEM_PROMPT
         .replace("{OS}", &os)
