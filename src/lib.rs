@@ -22,7 +22,7 @@ pub mod types;
 #[derive(Parser, Debug)]
 #[command(
     name = "nexsh",
-    version = "0.1.0",
+    version = "0.3.0",
     about = "Next-generation AI-powered shell using Google Gemini"
 )]
 struct Args {
@@ -39,7 +39,6 @@ impl Default for NexShConfig {
     fn default() -> Self {
         Self {
             api_key: String::new(),
-            default_os: std::env::consts::OS.to_string(),
             history_size: 1000,
             max_context_messages: 100,
         }
@@ -70,7 +69,16 @@ impl Shell {
 
         let config = if config_file.exists() {
             let content = fs::read_to_string(&config_file)?;
-            serde_json::from_str(&content)?
+            let parsed: serde_json::Value = serde_json::from_str(&content)?;
+            NexShConfig {
+            api_key: parsed.get("api_key").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            history_size: parsed.get("history_size")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(1000) as usize,
+            max_context_messages: parsed.get("max_context_messages")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(100) as usize,
+            }
         } else {
             NexShConfig::default()
         };
@@ -161,27 +169,29 @@ impl Shell {
     }
 
     pub async fn process_command(&mut self, input: &str) -> Result<(), Box<dyn Error>> {
-        // Add user message to context
+
+        if self.config.api_key.is_empty() {
+            self.initialize()?;
+        }
+
+        let os = std::env::consts::OS.to_string();
+        let prompt = SYSTEM_PROMPT
+        .replace("{OS}", &os)
+        .replace("{REQUEST}", input);
+
         self.add_message("user", input);
 
         // Build context array including system message and conversation history
-        let mut contents = vec![json!({
+        let content = json!({
             "parts": [{
-                "text": SYSTEM_PROMPT
-                    .replace("{OS}", &self.config.default_os)
+                "text": prompt
             }],
             "role": "user"
-        })];
+        });
+        
+        let mut contents = vec![content.clone()];
 
-        // Add context messages
-        for msg in &self.messages {
-            contents.push(json!({
-                "parts": [{
-                    "text": msg.content
-                }],
-                "role": msg.role
-            }));
-        }
+        contents.push(content);
 
         let req_json = json!({
             "contents": contents,
@@ -191,7 +201,7 @@ impl Shell {
         let request: GenerateContentRequest = serde_json::from_value(req_json)?;
         let response = self
             .client
-            .generate_content("gemini-1.5-flash", &request)
+            .generate_content("gemini-2.0-flash", &request)
             .await?;
 
         if let Some(candidates) = response.candidates {
