@@ -367,6 +367,8 @@ impl Shell {
                     match input {
                         "exit" | "quit" => break,
                         "clear" => self.clear_context()?,
+                        "init" => self.initialize()?,
+                        "help" => self.print_help()?,
                         _ => {
                             if let Err(e) = self.process_command(input).await {
                                 eprintln!("{} {}", "error:".red(), e);
