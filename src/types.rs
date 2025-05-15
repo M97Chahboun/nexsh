@@ -2,10 +2,18 @@ use serde::{Deserialize, Serialize};
 
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct Message {
+    pub role: String,
+    pub content: String,
+    pub timestamp: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NexShConfig {
     pub api_key: String,
     pub history_size: usize,
     pub default_os: String,
+    pub max_context_messages: usize,
 }
 
 #[derive(Debug, Deserialize)]
