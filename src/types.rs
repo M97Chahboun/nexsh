@@ -12,7 +12,6 @@ pub struct Message {
 pub struct NexShConfig {
     pub api_key: String,
     pub history_size: usize,
-    pub default_os: String,
     pub max_context_messages: usize,
 }
 
