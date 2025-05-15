@@ -10,7 +10,7 @@ mod header;
 #[derive(Parser, Debug)]
 #[command(
     name = "nexsh",
-    version = "0.1.0",
+    version = "0.2.0",
     about = "AI-powered smart shell using Google Gemini"
 )]
 struct Args {
