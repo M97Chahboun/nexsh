@@ -169,34 +169,43 @@ impl Shell {
     }
 
     pub async fn process_command(&mut self, input: &str) -> Result<(), Box<dyn Error>> {
-
         if self.config.api_key.is_empty() {
             self.initialize()?;
         }
 
         let os = std::env::consts::OS.to_string();
         let prompt = SYSTEM_PROMPT
-        .replace("{OS}", &os)
-        .replace("{REQUEST}", input);
+            .replace("{OS}", &os);
 
         self.add_message("user", input);
 
-        // Build context array including system message and conversation history
-        let content = json!({
-            "parts": [{
-                "text": prompt
-            }],
-            "role": "user"
-        });
+        // Create contents array with history messages in correct format
+        let mut contents = Vec::new();
         
-        let mut contents = vec![content.clone()];
-
-        contents.push(content);
+        // Add conversation history
+        for msg in &self.messages {
+            contents.push(json!({
+                "parts": [{
+                    "text": msg.content
+                }],
+                "role": msg.role
+            }));
+        }
 
         let req_json = json!({
+            "system_instruction": {
+                "parts": [
+                    {
+                        "text": prompt
+                    }
+                ],
+                "role": "system"
+            },
             "contents": contents,
             "tools": []
         });
+
+        println!("{}", req_json.to_string());
 
         let request: GenerateContentRequest = serde_json::from_value(req_json)?;
         let response = self
@@ -268,9 +277,13 @@ impl Shell {
     fn confirm_execution(&mut self) -> io::Result<bool> {
         let input = self
             .editor
-            .readline(&format!("{} Execute? [y/N]: ", "?".blue()))
+            .readline(&("? Execute? [y/N]: ".red().to_string()))
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
+            print!("{}️", "⚠️".red());
+            let input = self
+                .editor
+                .readline(&(" Execute potentially dangerous command? [y/N]: ".red().to_string()))
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
         Ok(input.trim().to_lowercase() == "y")
     }
 
