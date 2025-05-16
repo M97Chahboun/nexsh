@@ -364,7 +364,8 @@ impl Shell {
         println!("🤖 Welcome to NexSh! Type 'exit' to quit.");
 
         loop {
-            let prompt = format!("{} ", "nexsh>".green());
+            let current_dir = std::env::current_dir()?.display().to_string();
+            let prompt = format!("{} {} ", current_dir.blue(), "nexsh>".green());
             match self.editor.readline(&prompt) {
                 Ok(line) => {
                     let input = line.trim();
