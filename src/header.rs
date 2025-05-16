@@ -19,7 +19,7 @@ pub fn print_header() {
 
     // Print Header
     println!("{}", logo.bright_cyan());
-    println!("{}", "━".repeat(56).bright_blue());
+    println!("{}", "━".repeat(65).bright_blue());
     println!(
         "{} {} {} {} {} {} {}",
         "🤖".cyan(),
@@ -30,7 +30,7 @@ pub fn print_header() {
         username.green(),
         now.format("(%Y-%m-%d %H:%M UTC)").to_string().bright_black()
     );
-    println!("{}", "━".repeat(56).bright_blue());
+    println!("{}", "━".repeat(65).bright_blue());
     println!("🤖 NexSh Help:");
     println!("  - Type 'exit' or 'quit' to exit the shell.");
     println!("  - Type any command to execute it.");
