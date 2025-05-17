@@ -193,6 +193,33 @@ impl Shell {
         }
 
         let req_json = json!({
+            "generation_config": {
+                "response_mime_type": "application/json",
+                "response_schema": {
+                    "type": "object",
+                    "required": ["message", "command", "dangerous", "category"],
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "Clear, concise message with relevant emoji",
+                            "minLength": 1
+                        },
+                        "command": {
+                            "type": "string",
+                            "description": "Shell command to execute, empty if no action needed"
+                        },
+                        "dangerous": {
+                            "type": "boolean",
+                            "description": "True if command could be potentially harmful"
+                        },
+                        "category": {
+                            "type": "string",
+                            "description": "Classification of the command type",
+                            "enum": ["system", "file", "network", "package", "text", "process", "other"]
+                        }
+                    }
+                },
+            },
             "system_instruction": {
                 "parts": [
                     {
@@ -204,8 +231,6 @@ impl Shell {
             "contents": contents,
             "tools": []
         });
-
-        println!("{}", req_json.to_string());
 
         let request: GenerateContentRequest = serde_json::from_value(req_json)?;
         let response = self
@@ -275,16 +300,16 @@ impl Shell {
     }
 
     fn confirm_execution(&mut self) -> io::Result<bool> {
-        let input = self
+        let _input = self
             .editor
             .readline(&("? Execute? [y/N]: ".red().to_string()))
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
             print!("{}️", "⚠️".red());
-            let input = self
+            let _input = self
                 .editor
                 .readline(&(" Execute potentially dangerous command? [y/N]: ".red().to_string()))
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-        Ok(input.trim().to_lowercase() == "y")
+        Ok(_input.trim().to_lowercase() == "y")
     }
 
     fn execute_command(&self, command: &str) -> Result<String, Box<dyn Error>> {

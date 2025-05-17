@@ -14,25 +14,4 @@ COMMAND REQUIREMENTS:
 2. Use OS-specific syntax and commands
 3. Ensure command is executable and complete
 4. Return only raw JSON response without any markdown formatting
-
-RESPONSE FORMAT:
-For commands (return exactly like this):
-{
-    "message": "Brief success/error message with emojis",
-    "command": "actual_command_to_execute - if needed - if is null set empty string",
-    "dangerous": boolean,
-    "category": "system|file|network|package|text|other",
-    "is_command": true
-}
-
-For conversation (return exactly like this):
-{
-    "message": "Friendly response with emojis",
-    "command": "",
-    "dangerous": false,
-    "category": "conversation",
-    "is_command": false
-}
-
-IMPORTANT: Return the JSON response directly, WITHOUT markdown formatting or code blocks.
 "#;
