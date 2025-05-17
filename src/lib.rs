@@ -45,7 +45,7 @@ impl Default for NexShConfig {
     }
 }
 
-pub struct Shell {
+pub struct NexSh {
     config: NexShConfig,
     config_dir: PathBuf,
     history_file: PathBuf,
@@ -55,7 +55,7 @@ pub struct Shell {
     messages: Vec<Message>,
 }
 
-impl Shell {
+impl NexSh {
     pub fn new() -> Result<Self, Box<dyn Error>> {
         let proj_dirs = ProjectDirs::from("com", "gemini-shell", "nexsh")
             .ok_or("Failed to get project directories")?;
@@ -324,7 +324,7 @@ impl Shell {
             .readline(&("? Execute? [y/N]: ".red().to_string()))
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
         print!("{}️", "⚠️".red());
-        if(_input.trim() == "N" || _input.trim() == "n") {
+        if _input.trim() == "N" || _input.trim() == "n" {
             return Ok(false);
         }
         let _input = self
