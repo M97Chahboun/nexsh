@@ -1,5 +1,5 @@
 use clap::Parser;
-use nexsh::Shell;
+use nexsh::NexSh;
 use std::error::Error;
 mod header;
 pub mod prompt;
@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     header::print_header();
 
     let args = Args::parse();
-    let mut shell = Shell::new()?;
+    let mut shell = NexSh::new()?;
 
     if let Some(cmd) = args.execute {
         if cmd == "--help" || cmd == "-h" {
