@@ -28,7 +28,9 @@ pub fn print_header() {
         format!("v{}", version).yellow(),
         "|".bright_blue(),
         username.green(),
-        now.format("(%Y-%m-%d %H:%M UTC)").to_string().bright_black()
+        now.format("(%Y-%m-%d %H:%M UTC)")
+            .to_string()
+            .bright_black()
     );
     println!("{}", "━".repeat(65).bright_blue());
     println!("🤖 NexSh Help:");
@@ -37,5 +39,10 @@ pub fn print_header() {
     println!("  - Use 'init' to set up your API key.");
     println!("  - Use 'clear' to clear conversation context.");
 
-    println!("\n{} Type {} for help or {} to exit", "→".bright_yellow(), "'help'".cyan(), "'exit'".cyan());
+    println!(
+        "\n{} Type {} for help or {} to exit",
+        "→".bright_yellow(),
+        "'help'".cyan(),
+        "'exit'".cyan()
+    );
 }

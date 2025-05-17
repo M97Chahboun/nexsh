@@ -71,13 +71,19 @@ impl Shell {
             let content = fs::read_to_string(&config_file)?;
             let parsed: serde_json::Value = serde_json::from_str(&content)?;
             NexShConfig {
-            api_key: parsed.get("api_key").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            history_size: parsed.get("history_size")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(1000) as usize,
-            max_context_messages: parsed.get("max_context_messages")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(100) as usize,
+                api_key: parsed
+                    .get("api_key")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                history_size: parsed
+                    .get("history_size")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1000) as usize,
+                max_context_messages: parsed
+                    .get("max_context_messages")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(100) as usize,
             }
         } else {
             NexShConfig::default()
@@ -135,7 +141,9 @@ impl Shell {
 
         // Trim old messages if we exceed max_context_messages
         if self.messages.len() > self.config.max_context_messages {
-            self.messages = self.messages.split_off(self.messages.len() - self.config.max_context_messages);
+            self.messages = self
+                .messages
+                .split_off(self.messages.len() - self.config.max_context_messages);
         }
 
         let _ = self.save_context();
@@ -156,7 +164,10 @@ impl Shell {
             }
         }
 
-        if let Ok(input) = self.editor.readline("Enter max context messages (default 100): ") {
+        if let Ok(input) = self
+            .editor
+            .readline("Enter max context messages (default 100): ")
+        {
             if let Ok(size) = input.trim().parse() {
                 self.config.max_context_messages = size;
             }
@@ -174,14 +185,13 @@ impl Shell {
         }
 
         let os = std::env::consts::OS.to_string();
-        let prompt = SYSTEM_PROMPT
-            .replace("{OS}", &os);
+        let prompt = SYSTEM_PROMPT.replace("{OS}", &os);
 
         self.add_message("user", input);
 
         // Create contents array with history messages in correct format
         let mut contents = Vec::new();
-        
+
         // Add conversation history
         for msg in &self.messages {
             contents.push(json!({
@@ -263,16 +273,25 @@ impl Shell {
                                     response.category.yellow()
                                 );
                                 println!("{} {}", "→".blue(), response.command);
-                                self.add_message("model", &format!("Command:{}, message:{}", response.command, response.message));
+                                self.add_message(
+                                    "model",
+                                    &format!(
+                                        "Command:{}, message:{}",
+                                        response.command, response.message
+                                    ),
+                                );
 
                                 if !response.dangerous || self.confirm_execution()? {
                                     println!("{}", "Executing...".green());
                                     let output = self.execute_command(&response.command)?;
                                     println!("{}", "Done!".green());
-                                    
+
                                     // Add command output to context
                                     if !output.is_empty() {
-                                        self.add_message("model", &format!("Command output:\n{}", output));
+                                        self.add_message(
+                                            "model",
+                                            &format!("Command output:\n{}", output),
+                                        );
                                     }
                                 } else {
                                     println!("Command execution cancelled.");
@@ -304,11 +323,15 @@ impl Shell {
             .editor
             .readline(&("? Execute? [y/N]: ".red().to_string()))
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-            print!("{}️", "⚠️".red());
-            let _input = self
-                .editor
-                .readline(&(" Execute potentially dangerous command? [y/N]: ".red().to_string()))
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        print!("{}️", "⚠️".red());
+        let _input = self
+            .editor
+            .readline(
+                &(" Execute potentially dangerous command? [y/N]: "
+                    .red()
+                    .to_string()),
+            )
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
         Ok(_input.trim().to_lowercase() == "y")
     }
 

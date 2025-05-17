@@ -1,11 +1,9 @@
 use clap::Parser;
 use nexsh::Shell;
-use std::{
-    error::Error,
-};
-pub mod types;
-pub mod prompt;
+use std::error::Error;
 mod header;
+pub mod prompt;
+pub mod types;
 
 #[derive(Parser, Debug)]
 #[command(
