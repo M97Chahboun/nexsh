@@ -324,6 +324,9 @@ impl Shell {
             .readline(&("? Execute? [y/N]: ".red().to_string()))
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
         print!("{}️", "⚠️".red());
+        if(_input.trim() == "N" || _input.trim() == "n") {
+            return Ok(false);
+        }
         let _input = self
             .editor
             .readline(
