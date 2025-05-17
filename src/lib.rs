@@ -22,7 +22,7 @@ pub mod types;
 #[derive(Parser, Debug)]
 #[command(
     name = "nexsh",
-    version = "0.3.0",
+    version = "0.4.0",
     about = "Next-generation AI-powered shell using Google Gemini"
 )]
 struct Args {
@@ -71,13 +71,19 @@ impl Shell {
             let content = fs::read_to_string(&config_file)?;
             let parsed: serde_json::Value = serde_json::from_str(&content)?;
             NexShConfig {
-            api_key: parsed.get("api_key").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            history_size: parsed.get("history_size")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(1000) as usize,
-            max_context_messages: parsed.get("max_context_messages")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(100) as usize,
+                api_key: parsed
+                    .get("api_key")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                history_size: parsed
+                    .get("history_size")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1000) as usize,
+                max_context_messages: parsed
+                    .get("max_context_messages")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(100) as usize,
             }
         } else {
             NexShConfig::default()
@@ -135,7 +141,9 @@ impl Shell {
 
         // Trim old messages if we exceed max_context_messages
         if self.messages.len() > self.config.max_context_messages {
-            self.messages = self.messages.split_off(self.messages.len() - self.config.max_context_messages);
+            self.messages = self
+                .messages
+                .split_off(self.messages.len() - self.config.max_context_messages);
         }
 
         let _ = self.save_context();
@@ -156,7 +164,10 @@ impl Shell {
             }
         }
 
-        if let Ok(input) = self.editor.readline("Enter max context messages (default 100): ") {
+        if let Ok(input) = self
+            .editor
+            .readline("Enter max context messages (default 100): ")
+        {
             if let Ok(size) = input.trim().parse() {
                 self.config.max_context_messages = size;
             }
@@ -169,31 +180,64 @@ impl Shell {
     }
 
     pub async fn process_command(&mut self, input: &str) -> Result<(), Box<dyn Error>> {
-
         if self.config.api_key.is_empty() {
             self.initialize()?;
         }
 
         let os = std::env::consts::OS.to_string();
-        let prompt = SYSTEM_PROMPT
-        .replace("{OS}", &os)
-        .replace("{REQUEST}", input);
+        let prompt = SYSTEM_PROMPT.replace("{OS}", &os);
 
         self.add_message("user", input);
 
-        // Build context array including system message and conversation history
-        let content = json!({
-            "parts": [{
-                "text": prompt
-            }],
-            "role": "user"
-        });
-        
-        let mut contents = vec![content.clone()];
+        // Create contents array with history messages in correct format
+        let mut contents = Vec::new();
 
-        contents.push(content);
+        // Add conversation history
+        for msg in &self.messages {
+            contents.push(json!({
+                "parts": [{
+                    "text": msg.content
+                }],
+                "role": msg.role
+            }));
+        }
 
         let req_json = json!({
+            "generation_config": {
+                "response_mime_type": "application/json",
+                "response_schema": {
+                    "type": "object",
+                    "required": ["message", "command", "dangerous", "category"],
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "Clear, concise message with relevant emoji",
+                            "minLength": 1
+                        },
+                        "command": {
+                            "type": "string",
+                            "description": "Shell command to execute, empty if no action needed"
+                        },
+                        "dangerous": {
+                            "type": "boolean",
+                            "description": "True if command could be potentially harmful"
+                        },
+                        "category": {
+                            "type": "string",
+                            "description": "Classification of the command type",
+                            "enum": ["system", "file", "network", "package", "text", "process", "other"]
+                        }
+                    }
+                },
+            },
+            "system_instruction": {
+                "parts": [
+                    {
+                        "text": prompt
+                    }
+                ],
+                "role": "system"
+            },
             "contents": contents,
             "tools": []
         });
@@ -229,16 +273,25 @@ impl Shell {
                                     response.category.yellow()
                                 );
                                 println!("{} {}", "→".blue(), response.command);
-                                self.add_message("model", &format!("Command:{}, message:{}", response.command, response.message));
+                                self.add_message(
+                                    "model",
+                                    &format!(
+                                        "Command:{}, message:{}",
+                                        response.command, response.message
+                                    ),
+                                );
 
                                 if !response.dangerous || self.confirm_execution()? {
                                     println!("{}", "Executing...".green());
                                     let output = self.execute_command(&response.command)?;
                                     println!("{}", "Done!".green());
-                                    
+
                                     // Add command output to context
                                     if !output.is_empty() {
-                                        self.add_message("model", &format!("Command output:\n{}", output));
+                                        self.add_message(
+                                            "model",
+                                            &format!("Command output:\n{}", output),
+                                        );
                                     }
                                 } else {
                                     println!("Command execution cancelled.");
@@ -266,12 +319,20 @@ impl Shell {
     }
 
     fn confirm_execution(&mut self) -> io::Result<bool> {
-        let input = self
+        let _input = self
             .editor
-            .readline(&format!("{} Execute? [y/N]: ", "?".blue()))
+            .readline(&("? Execute? [y/N]: ".red().to_string()))
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
-        Ok(input.trim().to_lowercase() == "y")
+        print!("{}️", "⚠️".red());
+        let _input = self
+            .editor
+            .readline(
+                &(" Execute potentially dangerous command? [y/N]: "
+                    .red()
+                    .to_string()),
+            )
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        Ok(_input.trim().to_lowercase() == "y")
     }
 
     fn execute_command(&self, command: &str) -> Result<String, Box<dyn Error>> {
@@ -364,7 +425,8 @@ impl Shell {
         println!("🤖 Welcome to NexSh! Type 'exit' to quit.");
 
         loop {
-            let prompt = format!("{} ", "nexsh>".green());
+            let current_dir = std::env::current_dir()?.display().to_string();
+            let prompt = format!("{} {} ", current_dir.blue(), "nexsh>".green());
             match self.editor.readline(&prompt) {
                 Ok(line) => {
                     let input = line.trim();
