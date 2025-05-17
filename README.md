@@ -182,7 +182,6 @@ Edit `config.json` to customize settings:
 | `api_key` | Your Gemini API key | Required |
 | `history_size` | Number of commands to keep in history | 1000 |
 | `max_context_messages` | Maximum messages to keep in AI context | 10 |
-```
 
 ## 🤝 Contributing
 
