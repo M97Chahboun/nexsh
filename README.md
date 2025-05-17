@@ -109,10 +109,6 @@ yay -S nexsh
 
 First-time configuration:
 
-```bash
-nexsh --init
-```
-
 You'll need to:
 1. Enter your Gemini API key when prompted
 2. Get your API key from [Google AI Studio](https://aistudio.google.com/)
@@ -171,12 +167,21 @@ Configuration files are stored in platform-specific locations:
 
 ### Configuration Options
 
+Edit `config.json` to customize settings:
+
 ```json
 {
-  "api_key": "your_api_key_here",
-  "history_size": 1000,
-  "default_os": "linux",
+   "api_key": "your_gemini_api_key",
+   "history_size": 1000,
+   "max_context_messages": 10
 }
+```
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `api_key` | Your Gemini API key | Required |
+| `history_size` | Number of commands to keep in history | 1000 |
+| `max_context_messages` | Maximum messages to keep in AI context | 10 |
 ```
 
 ## 🤝 Contributing
