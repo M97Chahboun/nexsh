@@ -419,7 +419,7 @@ dependencies = [
 [[package]]
 name = "gemini_client_rs"
 version = "0.3.0"
-source = "git+https://github.com/M97Chahboun/gemini-client.git#03b7e95b4495fd284764fab8bf81c9a2b705917a"
+source = "git+https://github.com/M97Chahboun/gemini-client.git?branch=main#03b7e95b4495fd284764fab8bf81c9a2b705917a"
 dependencies = [
  "dotenvy",
  "reqwest",
@@ -887,7 +887,7 @@ dependencies = [
 
 [[package]]
 name = "nexsh"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "chrono",
  "clap",
