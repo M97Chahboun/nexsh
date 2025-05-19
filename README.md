@@ -38,7 +38,7 @@ Next-generation AI-powered shell using Google Gemini
 
 ## 🚀 Installation
 
-### From GitHub Releases
+### From GitHub Releases (Recommended)
 
 You can download pre-built binaries for your platform from our [GitHub Releases](https://github.com/M97Chahboun/nexsh/releases) page.
 
@@ -72,7 +72,7 @@ You can download pre-built binaries for your platform from our [GitHub Releases]
    # Windows: Move nexsh.exe to a directory in your PATH
    ```
    
-### Using Cargo (Recommended)
+### Using Cargo
 
 ```bash
 cargo install nexsh
