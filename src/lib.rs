@@ -203,9 +203,9 @@ impl NexSh {
         }
 
         let req_json = json!({
-            "generation_config": {
-                "response_mime_type": "application/json",
-                "response_schema": {
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": {
                     "type": "object",
                     "required": ["message", "command", "dangerous", "category"],
                     "properties": {
