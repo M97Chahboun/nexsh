@@ -38,7 +38,7 @@ Next-generation AI-powered shell using Google Gemini
 
 ## 🚀 Installation
 
-### From GitHub Releases (Recommended)
+### From GitHub Releases
 
 You can download pre-built binaries for your platform from our [GitHub Releases](https://github.com/M97Chahboun/nexsh/releases) page.
 
@@ -72,7 +72,7 @@ You can download pre-built binaries for your platform from our [GitHub Releases]
    # Windows: Move nexsh.exe to a directory in your PATH
    ```
    
-### Using Cargo
+### Using Cargo (Recommended)
 
 ```bash
 cargo install nexsh
@@ -88,21 +88,6 @@ cd nexsh
 # Build and install
 cargo build --release
 sudo cp target/release/nexsh /usr/local/bin/
-```
-
-### Platform-Specific Packages
-
-#### macOS (Homebrew)
-
-```bash
-brew tap M97Chahboun/nexsh
-brew install nexsh
-```
-
-#### Arch Linux (AUR)
-
-```bash
-yay -S nexsh
 ```
 
 ## 🛠️ Setup
@@ -182,7 +167,6 @@ Edit `config.json` to customize settings:
 | `api_key` | Your Gemini API key | Required |
 | `history_size` | Number of commands to keep in history | 1000 |
 | `max_context_messages` | Maximum messages to keep in AI context | 10 |
-```
 
 ## 🤝 Contributing
 
