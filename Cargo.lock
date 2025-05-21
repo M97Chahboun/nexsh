@@ -418,8 +418,9 @@ dependencies = [
 
 [[package]]
 name = "gemini_client_rs"
-version = "0.3.0"
-source = "git+https://github.com/M97Chahboun/gemini-client.git#03b7e95b4495fd284764fab8bf81c9a2b705917a"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5904f7911f6469d796feafa24d9d495f4a40ff4ac7a688ed7616bd430a73c7c0"
 dependencies = [
  "dotenvy",
  "reqwest",
@@ -593,9 +594,9 @@ dependencies = [
 
 [[package]]
 name = "hyper-util"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "497bbc33a26fdd4af9ed9c70d63f61cf56a938375fbb32df34db9b1cd6d643f2"
+checksum = "cf9f1e950e0d9d1d3c47184416723cf29c0d1f93bd8cccf37e4beb6b44f31710"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -887,7 +888,7 @@ dependencies = [
 
 [[package]]
 name = "nexsh"
-version = "0.4.0"
+version = "0.6.0"
 dependencies = [
  "chrono",
  "clap",

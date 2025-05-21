@@ -22,7 +22,7 @@ pub mod types;
 #[derive(Parser, Debug)]
 #[command(
     name = "nexsh",
-    version = "0.5.0",
+    version = "0.6.0",
     about = "Next-generation AI-powered shell using Google Gemini"
 )]
 struct Args {
@@ -203,9 +203,9 @@ impl NexSh {
         }
 
         let req_json = json!({
-            "generation_config": {
-                "response_mime_type": "application/json",
-                "response_schema": {
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": {
                     "type": "object",
                     "required": ["message", "command", "dangerous", "category"],
                     "properties": {

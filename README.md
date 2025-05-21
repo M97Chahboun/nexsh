@@ -90,21 +90,6 @@ cargo build --release
 sudo cp target/release/nexsh /usr/local/bin/
 ```
 
-### Platform-Specific Packages
-
-#### macOS (Homebrew)
-
-```bash
-brew tap M97Chahboun/nexsh
-brew install nexsh
-```
-
-#### Arch Linux (AUR)
-
-```bash
-yay -S nexsh
-```
-
 ## 🛠️ Setup
 
 First-time configuration:
