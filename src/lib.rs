@@ -6,7 +6,7 @@ use gemini_client_rs::{
     GeminiClient,
 };
 use prompt::SYSTEM_PROMPT;
-use rustyline::{error::ReadlineError, DefaultEditor};
+use rustyline::{error::ReadlineError, Config, DefaultEditor};
 use serde_json::json;
 use std::{
     error::Error,
@@ -22,7 +22,7 @@ pub mod types;
 #[derive(Parser, Debug)]
 #[command(
     name = "nexsh",
-    version = "0.6.0",
+    version = "0.7.0",
     about = "Next-generation AI-powered shell using Google Gemini"
 )]
 struct Args {
@@ -95,8 +95,10 @@ impl NexSh {
         } else {
             Vec::new()
         };
-
-        let mut editor = DefaultEditor::new()?;
+        let editor_config = Config::builder()
+            .max_history_size(config.history_size)?
+            .build();
+        let mut editor = DefaultEditor::with_config(editor_config)?;
         if history_file.exists() {
             let _ = editor.load_history(&history_file);
         }
@@ -266,6 +268,8 @@ impl NexSh {
                                     // Add model response to context
                                     self.add_message("model", &format!("{}", response.message));
                                     return Ok(());
+                                } else {
+                                    self.editor.add_history_entry(&response.command)?;
                                 }
                                 println!(
                                     "{} {}",
@@ -436,8 +440,6 @@ impl NexSh {
                     if input.is_empty() {
                         continue;
                     }
-
-                    self.editor.add_history_entry(input)?;
 
                     match input {
                         "exit" | "quit" => break,
