@@ -6,6 +6,8 @@
 # NexSh 🤖
 
 [![Crates.io](https://img.shields.io/crates/v/nexsh.svg)](https://crates.io/crates/nexsh)
+![Downloads](https://img.shields.io/crates/d/nexsh.svg)
+![Size](https://img.shields.io/crates/size/nexsh)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://github.com/M97Chahboun/nexsh/actions/workflows/publish.yaml/badge.svg)](https://github.com/M97Chahboun/nexsh/actions/workflows/rust.yml)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://m97chahboun.github.io/nexsh)
