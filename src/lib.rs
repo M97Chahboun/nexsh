@@ -474,7 +474,18 @@ impl NexSh {
 
         loop {
             let current_dir = std::env::current_dir()?.display().to_string();
-            let prompt = format!("{} {} ", current_dir.blue(), "NexSh →".green());
+            let prompt = format!(
+                "→ {} {} ",
+                current_dir
+                    .split(std::path::MAIN_SEPARATOR)
+                    .map(|s| s.bright_cyan().to_string())
+                    .collect::<Vec<_>>()
+                    .join(&format!(
+                        "{}",
+                        std::path::MAIN_SEPARATOR.to_string().bright_black()
+                    )),
+                "NexSh →".green()
+            );
             match self.editor.readline(&prompt) {
                 Ok(line) => {
                     let input = line.trim();
