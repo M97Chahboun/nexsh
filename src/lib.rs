@@ -18,6 +18,7 @@ use std::{
 use types::{GeminiResponse, Message, NexShConfig};
 
 use crate::available_models::list_available_models;
+use indicatif::{ProgressBar, ProgressStyle};
 pub mod available_models;
 pub mod prompt;
 pub mod types;
@@ -286,10 +287,17 @@ impl NexSh {
             "tools": []
         });
 
+        let pb = ProgressBar::new_spinner();
+        let spinner_style = ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
+            .unwrap()
+            .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+        pb.set_style(spinner_style);
+        pb.enable_steady_tick(std::time::Duration::from_millis(30));
+        pb.set_message("Thinking...".yellow().to_string());
         let request: GenerateContentRequest = serde_json::from_value(req_json)?;
         let model = self.config.model.as_deref().unwrap_or("gemini-2.0-flash");
         let response = self.client.generate_content(model, &request).await?;
-
+        pb.finish();
         if let Some(candidates) = response.candidates {
             for candidate in &candidates {
                 for part in &candidate.content.parts {
@@ -326,10 +334,9 @@ impl NexSh {
                                 );
 
                                 if !response.dangerous || self.confirm_execution()? {
-                                    println!("{}", "Executing...".green());
+                                    pb.set_message("Running command...".green().to_string());
                                     let output = self.execute_command(&response.command)?;
-                                    println!("{}", "Done!".green());
-
+                                    pb.finish();
                                     // Add command output to context
                                     if !output.is_empty() {
                                         self.add_message(
@@ -358,7 +365,6 @@ impl NexSh {
                 }
             }
         }
-
         Ok(())
     }
 
