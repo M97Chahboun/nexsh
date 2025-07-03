@@ -170,11 +170,13 @@ impl NexSh {
     pub fn initialize(&mut self) -> Result<(), Box<dyn Error>> {
         println!("🤖 Welcome to NexSh Setup!");
 
-        self.config.api_key = self
+        let input = self
             .editor
-            .readline("Enter your Gemini API key: ")?
-            .trim()
-            .to_string();
+            .readline("Enter your Gemini API key (leave blank to keep current if exist): ")?;
+        let api_key = input.trim();
+        if !api_key.is_empty() {
+            self.config.api_key = api_key.to_string();
+        }
 
         if let Ok(input) = self.editor.readline("Enter history size (default 1000): ") {
             if let Ok(size) = input.trim().parse() {
