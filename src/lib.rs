@@ -1,12 +1,3 @@
-/// Returns a list of available Gemini models (update as needed)
-fn list_available_models() -> Vec<&'static str> {
-    vec![
-        "gemini-2.0-flash",
-        "gemini-2.0-pro",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
-    ]
-}
 use clap::Parser;
 use colored::*;
 use directories::ProjectDirs;
@@ -25,6 +16,9 @@ use std::{
     process::Command,
 };
 use types::{GeminiResponse, Message, NexShConfig};
+
+use crate::available_models::list_available_models;
+pub mod available_models;
 pub mod prompt;
 pub mod types;
 
