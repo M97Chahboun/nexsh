@@ -12,6 +12,7 @@ pub struct NexShConfig {
     pub api_key: String,
     pub history_size: usize,
     pub max_context_messages: usize,
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

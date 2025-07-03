@@ -16,13 +16,17 @@ use std::{
     process::Command,
 };
 use types::{GeminiResponse, Message, NexShConfig};
+
+use crate::available_models::list_available_models;
+use indicatif::{ProgressBar, ProgressStyle};
+pub mod available_models;
 pub mod prompt;
 pub mod types;
 
 #[derive(Parser, Debug)]
 #[command(
     name = "nexsh",
-    version = "0.7.0",
+    version = "0.8.0",
     about = "Next-generation AI-powered shell using Google Gemini"
 )]
 struct Args {
@@ -41,6 +45,7 @@ impl Default for NexShConfig {
             api_key: String::new(),
             history_size: 1000,
             max_context_messages: 100,
+            model: Some("gemini-2.0-flash".to_string()),
         }
     }
 }
@@ -56,6 +61,13 @@ pub struct NexSh {
 }
 
 impl NexSh {
+    /// Change the Gemini model at runtime and save to config
+    pub fn set_model(&mut self, model: &str) -> Result<(), Box<dyn Error>> {
+        self.config.model = Some(model.to_string());
+        self.save_config()?;
+        println!("✅ Gemini model set to: {}", model.green());
+        Ok(())
+    }
     pub fn new() -> Result<Self, Box<dyn Error>> {
         let proj_dirs = ProjectDirs::from("com", "gemini-shell", "nexsh")
             .ok_or("Failed to get project directories")?;
@@ -84,6 +96,11 @@ impl NexSh {
                     .get("max_context_messages")
                     .and_then(|v| v.as_u64())
                     .unwrap_or(100) as usize,
+                model: parsed
+                    .get("model")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .or(Some("gemini-2.0-flash".to_string())),
             }
         } else {
             NexShConfig::default()
@@ -154,11 +171,13 @@ impl NexSh {
     pub fn initialize(&mut self) -> Result<(), Box<dyn Error>> {
         println!("🤖 Welcome to NexSh Setup!");
 
-        self.config.api_key = self
+        let input = self
             .editor
-            .readline("Enter your Gemini API key: ")?
-            .trim()
-            .to_string();
+            .readline("Enter your Gemini API key (leave blank to keep current if exist): ")?;
+        let api_key = input.trim();
+        if !api_key.is_empty() {
+            self.config.api_key = api_key.to_string();
+        }
 
         if let Ok(input) = self.editor.readline("Enter history size (default 1000): ") {
             if let Ok(size) = input.trim().parse() {
@@ -175,9 +194,33 @@ impl NexSh {
             }
         }
 
+        // Model selection
+        let models = list_available_models();
+        println!("Available Gemini models:");
+        for (i, m) in models.iter().enumerate() {
+            println!("  {}. {}", i + 1, m);
+        }
+        let input = self
+            .editor
+            .readline("Select Gemini model by number or name (default 1): ")?;
+        let model = input.trim();
+        let selected = if model.is_empty() {
+            models[0]
+        } else if let Ok(idx) = model.parse::<usize>() {
+            models
+                .get(idx.saturating_sub(1))
+                .copied()
+                .unwrap_or(models[0])
+        } else {
+            models
+                .iter()
+                .find(|m| m.starts_with(model))
+                .copied()
+                .unwrap_or(models[0])
+        };
+        self.config.model = Some(selected.to_string());
         self.save_config()?;
         println!("✅ Configuration saved successfully!");
-
         Ok(())
     }
 
@@ -244,12 +287,17 @@ impl NexSh {
             "tools": []
         });
 
+        let pb = ProgressBar::new_spinner();
+        let spinner_style = ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
+            .unwrap()
+            .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+        pb.set_style(spinner_style);
+        pb.enable_steady_tick(std::time::Duration::from_millis(30));
+        pb.set_message("Thinking...".yellow().to_string());
         let request: GenerateContentRequest = serde_json::from_value(req_json)?;
-        let response = self
-            .client
-            .generate_content("gemini-2.0-flash", &request)
-            .await?;
-
+        let model = self.config.model.as_deref().unwrap_or("gemini-2.0-flash");
+        let response = self.client.generate_content(model, &request).await?;
+        pb.finish();
         if let Some(candidates) = response.candidates {
             for candidate in &candidates {
                 for part in &candidate.content.parts {
@@ -286,10 +334,9 @@ impl NexSh {
                                 );
 
                                 if !response.dangerous || self.confirm_execution()? {
-                                    println!("{}", "Executing...".green());
+                                    pb.set_message("Running command...".green().to_string());
                                     let output = self.execute_command(&response.command)?;
-                                    println!("{}", "Done!".green());
-
+                                    pb.finish();
                                     // Add command output to context
                                     if !output.is_empty() {
                                         self.add_message(
@@ -318,7 +365,6 @@ impl NexSh {
                 }
             }
         }
-
         Ok(())
     }
 
@@ -352,7 +398,6 @@ impl NexSh {
         let output = Command::new(program).args(args).output()?;
 
         io::stdout().write_all(&output.stdout)?;
-        io::stderr().write_all(&output.stderr)?;
 
         if !output.status.success() {
             println!("{} {}", "⚠️ Command failed:".red(), command.yellow());
@@ -370,7 +415,11 @@ impl NexSh {
             let command_clone = command.to_string();
             let error_message_clone = error_message.clone();
             let client_clone = GeminiClient::new(self.config.api_key.clone());
-
+            let model = self
+                .config
+                .model
+                .clone()
+                .unwrap_or_else(|| "gemini-2.0-flash".to_string());
             tokio::spawn(async move {
                 let prompt = format!(
                     "The following command failed:\n{}\nwith the following error message:\n{}\nExplain the issue and suggest solutions, WITHOUT markdown formatting or code blocks.",
@@ -387,10 +436,7 @@ impl NexSh {
                 });
 
                 let request: GenerateContentRequest = serde_json::from_value(req_json).unwrap();
-                if let Ok(response) = client_clone
-                    .generate_content("gemini-1.5-flash", &request)
-                    .await
-                {
+                if let Ok(response) = client_clone.generate_content(&model, &request).await {
                     if let Some(candidates) = response.candidates {
                         for candidate in &candidates {
                             for part in &candidate.content.parts {
@@ -425,6 +471,7 @@ impl NexSh {
         println!("  - Type any command to execute it.");
         println!("  - Use 'init' to set up your API key.");
         println!("  - Use 'clear' to clear conversation context.");
+        println!("  - Type 'models' to list and select available Gemini models interactively.");
         Ok(())
     }
 
@@ -433,11 +480,53 @@ impl NexSh {
 
         loop {
             let current_dir = std::env::current_dir()?.display().to_string();
-            let prompt = format!("{} {} ", current_dir.blue(), "nexsh>".green());
+            let prompt = format!(
+                "→ {} {} ",
+                current_dir
+                    .split(std::path::MAIN_SEPARATOR)
+                    .map(|s| s.bright_cyan().to_string())
+                    .collect::<Vec<_>>()
+                    .join(&format!(
+                        "{}",
+                        std::path::MAIN_SEPARATOR.to_string().bright_black()
+                    )),
+                "NexSh →".green()
+            );
             match self.editor.readline(&prompt) {
                 Ok(line) => {
                     let input = line.trim();
                     if input.is_empty() {
+                        continue;
+                    }
+
+                    if input == "models" {
+                        let models = list_available_models();
+                        println!("Available Gemini models:");
+                        for (i, m) in models.iter().enumerate() {
+                            println!("  {}. {}", i + 1, m);
+                        }
+                        let input = self
+                            .editor
+                            .readline("Select model by number or name (Enter to cancel): ")
+                            .unwrap_or_default();
+                        let model = input.trim();
+                        if !model.is_empty() {
+                            let selected = if let Ok(idx) = model.parse::<usize>() {
+                                models
+                                    .get(idx.saturating_sub(1))
+                                    .copied()
+                                    .unwrap_or(models[0])
+                            } else {
+                                models
+                                    .iter()
+                                    .find(|m| m.starts_with(model))
+                                    .copied()
+                                    .unwrap_or(models[0])
+                            };
+                            if let Err(e) = self.set_model(selected) {
+                                eprintln!("{} {}", "error:".red(), e);
+                            }
+                        }
                         continue;
                     }
 
