@@ -61,6 +61,28 @@ pub struct NexSh {
 }
 
 impl NexSh {
+    /// Helper to create and configure a spinner progress bar with a colored message
+    fn set_progress_message(
+        &self,
+        message: impl Into<String>,
+        color: colored::Color,
+    ) -> ProgressBar {
+        let pb = ProgressBar::new_spinner();
+        let spinner_style = ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
+            .unwrap()
+            .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+        pb.set_style(spinner_style);
+        pb.enable_steady_tick(std::time::Duration::from_millis(30));
+        let msg = match color {
+            colored::Color::Green => message.into().green().to_string(),
+            colored::Color::Yellow => message.into().yellow().to_string(),
+            colored::Color::Blue => message.into().blue().to_string(),
+            colored::Color::Red => message.into().red().to_string(),
+            _ => message.into(),
+        };
+        pb.set_message(msg);
+        pb
+    }
     /// Change the Gemini model at runtime and save to config
     pub fn set_model(&mut self, model: &str) -> Result<(), Box<dyn Error>> {
         self.config.model = Some(model.to_string());
@@ -287,13 +309,7 @@ impl NexSh {
             "tools": []
         });
 
-        let pb = ProgressBar::new_spinner();
-        let spinner_style = ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
-            .unwrap()
-            .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
-        pb.set_style(spinner_style);
-        pb.enable_steady_tick(std::time::Duration::from_millis(30));
-        pb.set_message("Thinking...".yellow().to_string());
+        let pb = self.set_progress_message("Thinking...", colored::Color::Yellow);
         let request: GenerateContentRequest = serde_json::from_value(req_json)?;
         let model = self.config.model.as_deref().unwrap_or("gemini-2.0-flash");
         let response = self.client.generate_content(model, &request).await?;
@@ -334,7 +350,10 @@ impl NexSh {
                                 );
 
                                 if !response.dangerous || self.confirm_execution()? {
-                                    pb.set_message("Running command...".green().to_string());
+                                    let pb = self.set_progress_message(
+                                        "Running command...",
+                                        colored::Color::Green,
+                                    );
                                     let output = self.execute_command(&response.command)?;
                                     pb.finish();
                                     // Add command output to context
@@ -410,7 +429,9 @@ impl NexSh {
                 "Command failed with exit code: {}",
                 output.status.code().unwrap_or(-1)
             );
-            println!("{}", "Requesting AI analysis...".blue());
+
+            // Use a cloned progress bar for AI analysis in async
+            let pb = self.set_progress_message("Requesting AI analysis...", colored::Color::Blue);
 
             let command_clone = command.to_string();
             let error_message_clone = error_message.clone();
@@ -440,6 +461,7 @@ impl NexSh {
                         for candidate in &candidates {
                             for part in &candidate.content.parts {
                                 if let PartResponse::Text(explanation) = part {
+                                    pb.finish_and_clear();
                                     println!(
                                         "{} {}",
                                         "🤖 AI Explanation:".green(),
@@ -448,7 +470,13 @@ impl NexSh {
                                 }
                             }
                         }
+                    } else {
+                        pb.finish_and_clear();
+                        println!("{}", "No AI explanation available.".red());
                     }
+                } else {
+                    pb.finish_and_clear();
+                    println!("{}", "Failed to get AI explanation.".red());
                 }
             });
 
