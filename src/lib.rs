@@ -313,7 +313,7 @@ impl NexSh {
         let request: GenerateContentRequest = serde_json::from_value(req_json)?;
         let model = self.config.model.as_deref().unwrap_or("gemini-2.0-flash");
         let response = self.client.generate_content(model, &request).await?;
-        pb.finish();
+        pb.finish_and_clear();
         if let Some(candidates) = response.candidates {
             for candidate in &candidates {
                 for part in &candidate.content.parts {
@@ -355,7 +355,7 @@ impl NexSh {
                                         colored::Color::Green,
                                     );
                                     let output = self.execute_command(&response.command)?;
-                                    pb.finish();
+                                    pb.finish_and_clear();
                                     // Add command output to context
                                     if !output.is_empty() {
                                         self.add_message(
