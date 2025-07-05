@@ -26,7 +26,7 @@ pub mod types;
 #[derive(Parser, Debug)]
 #[command(
     name = "nexsh",
-    version = "0.8.0",
+    version = "0.8.1",
     about = "Next-generation AI-powered shell using Google Gemini"
 )]
 struct Args {
