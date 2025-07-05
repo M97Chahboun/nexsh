@@ -9,6 +9,7 @@ use prompt::SYSTEM_PROMPT;
 use rustyline::{error::ReadlineError, Config, DefaultEditor};
 use serde_json::json;
 use std::{
+    borrow::Cow,
     error::Error,
     fs,
     io::{self, Write},
@@ -62,25 +63,14 @@ pub struct NexSh {
 
 impl NexSh {
     /// Helper to create and configure a spinner progress bar with a colored message
-    fn set_progress_message(
-        &self,
-        message: impl Into<String>,
-        color: colored::Color,
-    ) -> ProgressBar {
+    fn set_progress_message(&self, message: impl Into<Cow<'static, str>>) -> ProgressBar {
         let pb = ProgressBar::new_spinner();
-        let spinner_style = ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
+        let spinner_style = ProgressStyle::with_template("{spinner} {wide_msg}")
             .unwrap()
             .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
         pb.set_style(spinner_style);
         pb.enable_steady_tick(std::time::Duration::from_millis(30));
-        let msg = match color {
-            colored::Color::Green => message.into().green().to_string(),
-            colored::Color::Yellow => message.into().yellow().to_string(),
-            colored::Color::Blue => message.into().blue().to_string(),
-            colored::Color::Red => message.into().red().to_string(),
-            _ => message.into(),
-        };
-        pb.set_message(msg);
+        pb.set_message(message);
         pb
     }
     /// Change the Gemini model at runtime and save to config
@@ -309,7 +299,7 @@ impl NexSh {
             "tools": []
         });
 
-        let pb = self.set_progress_message("Thinking...", colored::Color::Yellow);
+        let pb = self.set_progress_message("Thinking...".yellow().to_string());
         let request: GenerateContentRequest = serde_json::from_value(req_json)?;
         let model = self.config.model.as_deref().unwrap_or("gemini-2.0-flash");
         let response = self.client.generate_content(model, &request).await?;
@@ -351,8 +341,7 @@ impl NexSh {
 
                                 if !response.dangerous || self.confirm_execution()? {
                                     let pb = self.set_progress_message(
-                                        "Running command...",
-                                        colored::Color::Green,
+                                        "Running command...".green().to_string(),
                                     );
                                     let output = self.execute_command(&response.command)?;
                                     pb.finish_and_clear();
@@ -431,7 +420,7 @@ impl NexSh {
             );
 
             // Use a cloned progress bar for AI analysis in async
-            let pb = self.set_progress_message("Requesting AI analysis...", colored::Color::Blue);
+            let pb = self.set_progress_message("Requesting AI analysis...".blue().to_string());
 
             let command_clone = command.to_string();
             let error_message_clone = error_message.clone();
