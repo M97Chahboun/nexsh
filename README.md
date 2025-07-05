@@ -10,7 +10,7 @@
 ![Size](https://img.shields.io/crates/size/nexsh)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://github.com/M97Chahboun/nexsh/actions/workflows/publish.yaml/badge.svg)](https://github.com/M97Chahboun/nexsh/actions/workflows/rust.yml)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://m97chahboun.github.io/nexsh)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://github.com/M97Chahboun/nexsh)
 
 Next-generation AI-powered shell using Google Gemini
 
@@ -18,17 +18,15 @@ Next-generation AI-powered shell using Google Gemini
 [Features](#features) •
 [Usage](#usage) •
 [Configuration](#configuration) •
-[Contributing](#contributing) •
-[Documentation](https://m97chahboun.github.io/nexsh)
+[Contributing](#contributing)
 
 <img src="demo.gif" alt="NexSh Demo" width="600"/>
 
 </div>
 
-> ⚠️ **Note**: This project is under active development. Features and Commands may change.
 
+# Features
 
-## 🌟 Features
 
 - 🧠 **AI-powered command interpretation** - Understands natural language commands
 - 🔄 **Smart conversion** - Translates your words into precise shell commands
@@ -37,8 +35,8 @@ Next-generation AI-powered shell using Google Gemini
 - 🛡️ **Safety first** - Warns before executing potentially dangerous commands
 - 🚀 **Multiple modes** - Interactive shell or single-command execution
 - 💻 **Cross-platform** - Works on Linux, macOS, and Windows
-
-## 🚀 Installation
+- ❌ **Command failure explanations** - Offers explanations and potential solutions when a command fails
+# Installation
 
 ### From GitHub Releases
 
@@ -101,7 +99,35 @@ You'll need to:
 2. Get your API key from [Google AI Studio](https://aistudio.google.com/)
 3. The key will be securely stored in your system's config directory
 
-## 📚 Usage
+# Configuration
+
+### Configuration Options
+
+```bash
+nexsh init
+```
+
+Follow the prompts to configure the tool:
+
+```plaintext
+Enter your Gemini API Key: your_gemini_api_key
+Set history size (default is 1000):
+Set max context messages (default is 10):
+Set model (default is gemini-2.0-flash):
+```
+
+Your configuration is now stored in the default location and used by `nexsh`.
+```
+
+| Setting                | Description                            | Default          |
+| ---------------------- | -------------------------------------- | ---------------- |
+| `api_key`              | Your Gemini API key                    | Required         |
+| `history_size`         | Number of commands to keep in history  | 1000             |
+| `max_context_messages` | Maximum messages to keep in AI context | 10               |
+| `model`                | The Gemini model                       | gemini-2.0-flash |
+```
+
+# Usage
 
 ### Interactive Shell Mode
 
@@ -136,41 +162,15 @@ nexsh -e "show all running docker containers"
 
 ### Key Commands
 
-| Command       | Action                          |
-|---------------|---------------------------------|
-| `exit`/`quit` | Exit the shell                  |
-| `help`        | Show available commands        |
-| `Ctrl+C`      | Cancel current operation        |
-| `Ctrl+D`      | Exit the shell                  |
-| `Up/Down`     | Navigate command history        |
+| Command       | Action                   |
+| ------------- | ------------------------ |
+| `exit`/`quit` | Exit the shell           |
+| `help`        | Show available commands  |
+| `Ctrl+C`      | Cancel current operation |
+| `Ctrl+D`      | Exit the shell           |
+| `Up/Down`     | Navigate command history |
 
-## ⚙️ Configuration
-
-Configuration files are stored in platform-specific locations:
-
-- **Linux**: `~/.config/nexsh/`
-- **macOS**: `~/Library/Application Support/nexsh/`
-- **Windows**: `%APPDATA%\nexsh\`
-
-### Configuration Options
-
-Edit `config.json` to customize settings:
-
-```json
-{
-   "api_key": "your_gemini_api_key",
-   "history_size": 1000,
-   "max_context_messages": 10
-}
-```
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `api_key` | Your Gemini API key | Required |
-| `history_size` | Number of commands to keep in history | 1000 |
-| `max_context_messages` | Maximum messages to keep in AI context | 10 |
-
-## 🤝 Contributing
+# Contributing
 
 We welcome contributions! Here's how to get started:
 
