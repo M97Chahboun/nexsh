@@ -9,6 +9,7 @@ use prompt::SYSTEM_PROMPT;
 use rustyline::{error::ReadlineError, Config, DefaultEditor};
 use serde_json::json;
 use std::{
+    borrow::Cow,
     error::Error,
     fs,
     io::{self, Write},
@@ -17,7 +18,7 @@ use std::{
 };
 use types::{GeminiResponse, Message, NexShConfig};
 
-use crate::available_models::list_available_models;
+use crate::{available_models::list_available_models, prompt::EXPLANATION_PROMPT};
 use indicatif::{ProgressBar, ProgressStyle};
 pub mod available_models;
 pub mod prompt;
@@ -26,7 +27,7 @@ pub mod types;
 #[derive(Parser, Debug)]
 #[command(
     name = "nexsh",
-    version = "0.8.0",
+    version = "0.8.1",
     about = "Next-generation AI-powered shell using Google Gemini"
 )]
 struct Args {
@@ -61,6 +62,17 @@ pub struct NexSh {
 }
 
 impl NexSh {
+    /// Helper to create and configure a spinner progress bar with a colored message
+    fn set_progress_message(&self, message: impl Into<Cow<'static, str>>) -> ProgressBar {
+        let pb = ProgressBar::new_spinner();
+        let spinner_style = ProgressStyle::with_template("{spinner} {wide_msg}")
+            .unwrap()
+            .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+        pb.set_style(spinner_style);
+        pb.enable_steady_tick(std::time::Duration::from_millis(30));
+        pb.set_message(message);
+        pb
+    }
     /// Change the Gemini model at runtime and save to config
     pub fn set_model(&mut self, model: &str) -> Result<(), Box<dyn Error>> {
         self.config.model = Some(model.to_string());
@@ -287,17 +299,11 @@ impl NexSh {
             "tools": []
         });
 
-        let pb = ProgressBar::new_spinner();
-        let spinner_style = ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
-            .unwrap()
-            .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
-        pb.set_style(spinner_style);
-        pb.enable_steady_tick(std::time::Duration::from_millis(30));
-        pb.set_message("Thinking...".yellow().to_string());
+        let pb = self.set_progress_message("Thinking...".yellow().to_string());
         let request: GenerateContentRequest = serde_json::from_value(req_json)?;
         let model = self.config.model.as_deref().unwrap_or("gemini-2.0-flash");
         let response = self.client.generate_content(model, &request).await?;
-        pb.finish();
+        pb.finish_and_clear();
         if let Some(candidates) = response.candidates {
             for candidate in &candidates {
                 for part in &candidate.content.parts {
@@ -334,9 +340,11 @@ impl NexSh {
                                 );
 
                                 if !response.dangerous || self.confirm_execution()? {
-                                    pb.set_message("Running command...".green().to_string());
+                                    let pb = self.set_progress_message(
+                                        "Running command...".green().to_string(),
+                                    );
                                     let output = self.execute_command(&response.command)?;
-                                    pb.finish();
+                                    pb.finish_and_clear();
                                     // Add command output to context
                                     if !output.is_empty() {
                                         self.add_message(
@@ -410,7 +418,9 @@ impl NexSh {
                 "Command failed with exit code: {}",
                 output.status.code().unwrap_or(-1)
             );
-            println!("{}", "Requesting AI analysis...".blue());
+
+            // Use a cloned progress bar for AI analysis in async
+            let pb = self.set_progress_message("Requesting AI analysis...".blue().to_string());
 
             let command_clone = command.to_string();
             let error_message_clone = error_message.clone();
@@ -421,10 +431,9 @@ impl NexSh {
                 .clone()
                 .unwrap_or_else(|| "gemini-2.0-flash".to_string());
             tokio::spawn(async move {
-                let prompt = format!(
-                    "The following command failed:\n{}\nwith the following error message:\n{}\nExplain the issue and suggest solutions, WITHOUT markdown formatting or code blocks.",
-                    command_clone, error_message_clone
-                );
+                let prompt = EXPLANATION_PROMPT
+                    .replace("{COMMAND}", &command_clone)
+                    .replace("{ERROR}", &error_message_clone);
 
                 let req_json = json!({"contents": [{
                         "parts": [{
@@ -441,6 +450,7 @@ impl NexSh {
                         for candidate in &candidates {
                             for part in &candidate.content.parts {
                                 if let PartResponse::Text(explanation) = part {
+                                    pb.finish_and_clear();
                                     println!(
                                         "{} {}",
                                         "🤖 AI Explanation:".green(),
@@ -449,7 +459,13 @@ impl NexSh {
                                 }
                             }
                         }
+                    } else {
+                        pb.finish_and_clear();
+                        println!("{}", "No AI explanation available.".red());
                     }
+                } else {
+                    pb.finish_and_clear();
+                    println!("{}", "Failed to get AI explanation.".red());
                 }
             });
 
@@ -476,7 +492,7 @@ impl NexSh {
     }
 
     pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
-        println!("🤖 Welcome to NexSh! Type 'exit' to quit.");
+        println!("🤖 Welcome to NexSh!");
 
         loop {
             let current_dir = std::env::current_dir()?.display().to_string();
