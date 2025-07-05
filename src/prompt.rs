@@ -15,3 +15,11 @@ COMMAND REQUIREMENTS:
 3. Ensure command is executable and complete
 4. Return only raw JSON response without any markdown formatting
 "#;
+
+pub const EXPLANATION_PROMPT: &str = r#"
+The following command failed:
+{COMMAND}
+with this error message:
+{ERROR}
+Briefly explain the cause of the failure and suggest one or two concise solutions. Do not use markdown formatting or code blocks. Keep your explanation and suggestions short and clear.
+"#;

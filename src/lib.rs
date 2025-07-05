@@ -17,7 +17,7 @@ use std::{
 };
 use types::{GeminiResponse, Message, NexShConfig};
 
-use crate::available_models::list_available_models;
+use crate::{available_models::list_available_models, prompt::EXPLANATION_PROMPT};
 use indicatif::{ProgressBar, ProgressStyle};
 pub mod available_models;
 pub mod prompt;
@@ -421,10 +421,9 @@ impl NexSh {
                 .clone()
                 .unwrap_or_else(|| "gemini-2.0-flash".to_string());
             tokio::spawn(async move {
-                let prompt = format!(
-                    "The following command failed:\n{}\nwith the following error message:\n{}\nExplain the issue and suggest solutions, WITHOUT markdown formatting or code blocks.",
-                    command_clone, error_message_clone
-                );
+                let prompt = EXPLANATION_PROMPT
+                    .replace("{COMMAND}", &command_clone)
+                    .replace("{ERROR}", &error_message_clone);
 
                 let req_json = json!({"contents": [{
                         "parts": [{
@@ -476,7 +475,7 @@ impl NexSh {
     }
 
     pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
-        println!("🤖 Welcome to NexSh! Type 'exit' to quit.");
+        println!("🤖 Welcome to NexSh!");
 
         loop {
             let current_dir = std::env::current_dir()?.display().to_string();
